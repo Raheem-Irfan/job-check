@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JobCheck — AI Resume & Job Matcher</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface2: #222535;
+  --border: rgba(255,255,255,0.08);
+  --accent: #6366f1;
+  --accent2: #8b5cf6;
+  --green: #22c55e;
+  --amber: #f59e0b;
+  --red: #ef4444;
+  --text: #f1f5f9;
+  --muted: #64748b;
+  --soft: #94a3b8;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Inter', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; line-height: 1.6; min-height: 100vh; }
+
+/* NAV */
+nav { background: rgba(15,17,23,0.95); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 2rem; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+.nav-logo { font-family: var(--mono); font-weight: 600; font-size: 1rem; color: var(--accent); }
+.nav-logo span { color: var(--text); }
+.nav-tabs { display: flex; gap: 0.5rem; }
+.nav-tab { background: transparent; border: none; color: var(--muted); font-family: var(--sans); font-size: 0.85rem; font-weight: 500; padding: 0.4rem 1rem; border-radius: 6px; cursor: pointer; transition: all 0.18s; }
+.nav-tab.active, .nav-tab:hover { background: var(--surface2); color: var(--text); }
+.nav-tab.active { color: var(--accent); }
+
+/* HERO */
+.hero { text-align: center; padding: 4rem 2rem 2rem; }
+.hero-badge { display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.3); color: var(--accent); font-size: 0.78rem; font-weight: 500; padding: 0.3rem 0.9rem; border-radius: 100px; margin-bottom: 1.5rem; }
+.hero h1 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 700; letter-spacing: -0.03em; margin-bottom: 0.8rem; }
+.hero h1 span { background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.hero p { color: var(--soft); max-width: 500px; margin: 0 auto 2rem; font-size: 1rem; }
+
+/* TABS CONTENT */
+.tab-content { display: none; max-width: 860px; margin: 0 auto; padding: 0 1.5rem 4rem; }
+.tab-content.active { display: block; }
+
+/* CARDS */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.8rem; margin-bottom: 1.2rem; }
+.card-title { font-family: var(--mono); font-size: 0.75rem; font-weight: 600; color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 1rem; }
+
+/* UPLOAD ZONE */
+.upload-zone { border: 2px dashed var(--border); border-radius: 10px; padding: 2rem; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; }
+.upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: rgba(99,102,241,0.05); }
+.upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.upload-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+.upload-label { font-size: 0.9rem; color: var(--soft); }
+.upload-label strong { color: var(--accent); }
+.file-chosen { font-family: var(--mono); font-size: 0.78rem; color: var(--green); margin-top: 0.5rem; }
+
+/* TEXTAREA */
+textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 1rem; border-radius: 10px; font-family: var(--sans); font-size: 0.88rem; resize: vertical; min-height: 150px; outline: none; transition: border-color 0.18s; line-height: 1.6; }
+textarea:focus { border-color: var(--accent); }
+textarea::placeholder { color: var(--muted); }
+
+/* COUNTRY SELECT */
+.select-row { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; }
+select, .keyword-input { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 0.65rem 1rem; border-radius: 8px; font-family: var(--sans); font-size: 0.88rem; outline: none; flex: 1; }
+select:focus, .keyword-input:focus { border-color: var(--accent); }
+select option { background: var(--surface2); }
+
+/* BUTTON */
+.btn { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; padding: 0.75rem 2rem; border-radius: 9px; font-family: var(--sans); font-size: 0.92rem; font-weight: 600; cursor: pointer; width: 100%; margin-top: 1rem; transition: opacity 0.18s, transform 0.18s; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+.btn:hover { opacity: 0.88; transform: translateY(-1px); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* LOADER */
+.loader { display: none; text-align: center; padding: 3rem; }
+.spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loader p { color: var(--muted); font-size: 0.88rem; }
+
+/* RESULTS */
+.results { display: none; }
+
+/* SCORE RING */
+.score-section { display: flex; align-items: center; gap: 2.5rem; flex-wrap: wrap; }
+.score-ring-wrap { position: relative; width: 140px; height: 140px; flex-shrink: 0; }
+.score-ring-wrap svg { transform: rotate(-90deg); }
+.score-ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.score-num { font-family: var(--mono); font-size: 2rem; font-weight: 700; color: var(--text); line-height: 1; }
+.score-label { font-size: 0.7rem; color: var(--muted); margin-top: 0.2rem; }
+.score-info { flex: 1; }
+.verdict-badge { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1.1rem; border-radius: 8px; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.8rem; }
+.verdict-message { color: var(--soft); font-size: 0.88rem; line-height: 1.6; }
+.score-stats { display: flex; gap: 1.5rem; margin-top: 1rem; flex-wrap: wrap; }
+.score-stat { text-align: center; }
+.score-stat-num { font-family: var(--mono); font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+.score-stat-label { font-size: 0.72rem; color: var(--muted); }
+
+/* SKILLS GRID */
+.skills-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+.skills-col-title { font-size: 0.78rem; font-weight: 600; margin-bottom: 0.7rem; display: flex; align-items: center; gap: 0.4rem; }
+.skill-pills { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.pill { font-size: 0.73rem; padding: 0.25rem 0.65rem; border-radius: 5px; font-family: var(--mono); }
+.pill-green { background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.25); color: var(--green); }
+.pill-red { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.25); color: var(--red); }
+.pill-amber { background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.25); color: var(--amber); }
+.pill-blue { background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.25); color: #818cf8; }
+
+/* TIPS */
+.tips-list { list-style: none; display: flex; flex-direction: column; gap: 0.6rem; }
+.tips-list li { display: flex; gap: 0.7rem; align-items: flex-start; font-size: 0.875rem; color: var(--soft); line-height: 1.6; }
+.tips-list li::before { content: '→'; color: var(--accent); font-family: var(--mono); flex-shrink: 0; margin-top: 1px; }
+
+/* JOB CARDS */
+.jobs-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.2rem; flex-wrap: wrap; gap: 0.5rem; }
+.jobs-count { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
+.job-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.4rem; margin-bottom: 1rem; transition: border-color 0.18s; }
+.job-card:hover { border-color: rgba(99,102,241,0.35); }
+.job-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.7rem; }
+.job-title { font-weight: 600; font-size: 0.98rem; color: var(--text); margin-bottom: 0.2rem; }
+.job-company { font-size: 0.82rem; color: var(--soft); }
+.job-score-wrap { text-align: right; flex-shrink: 0; }
+.job-score-num { font-family: var(--mono); font-size: 1.3rem; font-weight: 700; }
+.job-score-label { font-size: 0.68rem; color: var(--muted); }
+.job-bar-track { height: 5px; background: var(--surface2); border-radius: 99px; overflow: hidden; margin: 0.6rem 0; }
+.job-bar-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width 1s ease; }
+.job-meta { display: flex; gap: 1rem; font-size: 0.78rem; color: var(--muted); flex-wrap: wrap; margin-bottom: 0.8rem; }
+.job-meta span { display: flex; align-items: center; gap: 0.3rem; }
+.job-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.6; margin-bottom: 0.8rem; }
+.job-bottom { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
+.job-verdict-badge { font-size: 0.72rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 5px; }
+.job-apply { background: var(--accent); color: #fff; border: none; padding: 0.4rem 1rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; transition: opacity 0.18s; }
+.job-apply:hover { opacity: 0.82; }
+
+/* EMPTY STATE */
+.empty { text-align: center; padding: 3rem; color: var(--muted); font-size: 0.9rem; }
+
+/* RESPONSIVE */
+@media (max-width: 600px) {
+  .skills-cols { grid-template-columns: 1fr; }
+  .score-section { flex-direction: column; align-items: flex-start; }
+  nav { padding: 0 1rem; }
+  .tab-content { padding: 0 1rem 3rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Job<span>Check</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchTab('analyze', this)">Rate My Fit</button>
+    <button class="nav-tab" onclick="switchTab('findjobs', this)">Find Jobs</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">⚡ AI-Powered · No sign-up needed</div>
+  <h1>Does your resume <span>fit the job?</span></h1>
+  <p>Upload your resume and get an instant AI match score, skill gap analysis, and ranked job listings.</p>
+</div>
+
+<!-- TAB: ANALYZE -->
+<div id="tab-analyze" class="tab-content active">
+
+  <div class="card">
+    <div class="card-title">📄 Your Resume</div>
+    <div class="upload-zone" id="analyzeDropzone">
+      <input type="file" id="analyzeResume" accept=".pdf,.docx" onchange="handleFileChange('analyzeResume','analyzeFileLabel')">
+      <div class="upload-icon">📎</div>
+      <div class="upload-label">Drop your resume PDF or Word file here or <strong>click to browse</strong></div>
+      <div class="file-chosen" id="analyzeFileLabel"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📋 Job Description</div>
+    <textarea id="jobDesc" placeholder="Paste the full job description here — the more detail, the better the analysis..."></textarea>
+  </div>
+
+  <button class="btn" onclick="runAnalyze()" id="analyzeBtn">
+    ⚡ Analyze My Fit
+  </button>
+
+  <div class="loader" id="analyzeLoader">
+    <div class="spinner"></div>
+    <p>Analyzing your resume against the job description...</p>
+  </div>
+
+  <div class="results" id="analyzeResults">
+
+    <!-- SCORE -->
+    <div class="card" style="margin-top:1.5rem">
+      <div class="card-title">Match Score</div>
+      <div class="score-section">
+        <div class="score-ring-wrap">
+          <svg width="140" height="140" viewBox="0 0 140 140">
+            <circle cx="70" cy="70" r="58" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="10"/>
+            <circle id="scoreArc" cx="70" cy="70" r="58" fill="none" stroke="url(#grad)" stroke-width="10" stroke-linecap="round" stroke-dasharray="364" stroke-dashoffset="364"/>
+            <defs>
+              <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" style="stop-color:#6366f1"/>
+                <stop offset="100%" style="stop-color:#8b5cf6"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <div class="score-ring-center">
+            <div class="score-num" id="scoreNum">0%</div>
+            <div class="score-label">match</div>
+          </div>
+        </div>
+        <div class="score-info">
+          <div class="verdict-badge" id="verdictBadge"></div>
+          <div class="verdict-message" id="verdictMsg"></div>
+          <div class="score-stats">
+            <div class="score-stat"><div class="score-stat-num" id="statMatched">0</div><div class="score-stat-label">Skills matched</div></div>
+            <div class="score-stat"><div class="score-stat-num" id="statMissing" style="color:var(--red)">0</div><div class="score-stat-label">Skills missing</div></div>
+            <div class="score-stat"><div class="score-stat-num" id="statLevel" style="font-size:0.85rem;color:var(--amber)">-</div><div class="score-stat-label">Your level</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SKILLS -->
+    <div class="card">
+      <div class="card-title">Skill Breakdown</div>
+      <div class="skills-cols">
+        <div>
+          <div class="skills-col-title" style="color:var(--green)">✅ Skills You Have</div>
+          <div class="skill-pills" id="matchedSkills"></div>
+        </div>
+        <div>
+          <div class="skills-col-title" style="color:var(--red)">❌ Skills You're Missing</div>
+          <div class="skill-pills" id="missingSkills"></div>
+        </div>
+      </div>
+      <div style="margin-top:1.2rem">
+        <div class="skills-col-title" style="color:var(--amber)">🔑 Keyword Gaps</div>
+        <div class="skill-pills" id="keywordGaps"></div>
+      </div>
+    </div>
+
+    <!-- TIPS -->
+    <div class="card">
+      <div class="card-title">💡 Improvement Tips</div>
+      <ul class="tips-list" id="tipsList"></ul>
+    </div>
+
+  </div>
+</div>
+
+<!-- TAB: FIND JOBS -->
+<div id="tab-findjobs" class="tab-content">
+
+  <div class="card">
+    <div class="card-title">📄 Your Resume</div>
+    <div class="upload-zone">
+      <input type="file" id="findResume" accept=".pdf,.docx" onchange="handleFileChange('findResume','findFileLabel')">
+      <div class="upload-icon">📎</div>
+      <div class="upload-label">Drop your resume PDF or Word file here or <strong>click to browse</strong></div>
+      <div class="file-chosen" id="findFileLabel"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔍 Search Options</div>
+    <div class="select-row">
+      <div style="flex:1">
+        <div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.4rem">Country</div>
+        <select id="countrySelect">
+          <option value="pk">🇵🇰 Pakistan (Remote Jobs)</option>
+          <option value="gb">🇬🇧 United Kingdom</option>
+          <option value="us">🇺🇸 United States</option>
+          <option value="au">🇦🇺 Australia</option>
+          <option value="ca">🇨🇦 Canada</option>
+          <option value="de">🇩🇪 Germany</option>
+          <option value="in">🇮🇳 India</option>
+          <option value="sg">🇸🇬 Singapore</option>
+        </select>
+      </div>
+      <div style="flex:2">
+        <div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.4rem">Keywords (optional — leave blank to auto-detect from resume)</div>
+        <input class="keyword-input" type="text" id="keywords" placeholder="e.g. python developer, data scientist...">
+      </div>
+    </div>
+  </div>
+
+  <button class="btn" onclick="runFindJobs()" id="findBtn">
+    🔍 Find Matching Jobs
+  </button>
+
+  <div class="loader" id="findLoader">
+    <div class="spinner"></div>
+    <p>Scanning your resume and searching for matching jobs...</p>
+  </div>
+
+  <div class="results" id="findResults" style="margin-top:1.5rem">
+    <div class="card" style="margin-bottom:0.5rem">
+      <div class="card-title">Your Resume Skills</div>
+      <div class="skill-pills" id="resumeSkills"></div>
+    </div>
+    <div class="jobs-header">
+      <div style="font-weight:600">Matched Jobs</div>
+      <div class="jobs-count" id="jobsCount"></div>
+    </div>
+    <div id="pakistanNote" style="display:none;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:0.8rem 1rem;margin-bottom:1rem;font-size:0.82rem;color:#f59e0b;">⚠️ Adzuna does not directly support Pakistan yet — showing international and remote jobs that match your skills. These are real listings you can apply to remotely.</div>
+  <div id="jobsList"></div>
+  </div>
+
+</div>
+
+<script>
+const API = '';  // Same origin — FastAPI serves the frontend
+
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  btn.classList.add('active');
+}
+
+function handleFileChange(inputId, labelId) {
+  const file = document.getElementById(inputId).files[0];
+  const label = document.getElementById(labelId);
+  if (file) label.textContent = '✓ ' + file.name;
+}
+
+// ── ANALYZE ──
+async function runAnalyze() {
+  const file = document.getElementById('analyzeResume').files[0];
+  const jd = document.getElementById('jobDesc').value.trim();
+  if (!file) return alert('Please upload your resume PDF');
+  if (!jd) return alert('Please paste a job description');
+
+  const btn = document.getElementById('analyzeBtn');
+  const loader = document.getElementById('analyzeLoader');
+  const results = document.getElementById('analyzeResults');
+
+  btn.disabled = true;
+  loader.style.display = 'block';
+  results.style.display = 'none';
+
+  const form = new FormData();
+  form.append('resume', file);
+  form.append('job_description', jd);
+
+  try {
+    const res = await fetch(API + '/analyze', { method: 'POST', body: form });
+    if (!res.ok) throw new Error((await res.json()).detail || 'Server error');
+    const data = await res.json();
+    renderAnalyze(data);
+  } catch (e) {
+    alert('Could not find jobs: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    loader.style.display = 'none';
+  }
+}
+
+function renderAnalyze(data) {
+  const results = document.getElementById('analyzeResults');
+  results.style.display = 'block';
+
+  // Score ring animation
+  const score = data.match_score;
+  const arc = 364;
+  const offset = arc - (arc * score / 100);
+  const scoreArc = document.getElementById('scoreArc');
+  const scoreNum = document.getElementById('scoreNum');
+
+  scoreArc.style.strokeDashoffset = arc;
+  setTimeout(() => {
+    scoreArc.style.transition = 'stroke-dashoffset 1.2s ease';
+    scoreArc.style.strokeDashoffset = offset;
+  }, 100);
+
+  let count = 0;
+  const timer = setInterval(() => {
+    count = Math.min(count + 2, score);
+    scoreNum.textContent = count.toFixed(0) + '%';
+    if (count >= score) clearInterval(timer);
+  }, 20);
+
+  // Color ring by score
+  const color = score >= 70 ? '#22c55e' : score >= 50 ? '#f59e0b' : '#ef4444';
+  scoreArc.style.stroke = color;
+
+  // Verdict
+  const v = data.verdict;
+  const badge = document.getElementById('verdictBadge');
+  badge.textContent = v.icon + ' ' + v.label;
+  badge.style.background = v.color + '20';
+  badge.style.border = '1px solid ' + v.color + '40';
+  badge.style.color = v.color;
+  document.getElementById('verdictMsg').textContent = v.message;
+
+  // Stats
+  document.getElementById('statMatched').textContent = data.matched_skills.length;
+  document.getElementById('statMissing').textContent = data.missing_skills.length;
+  document.getElementById('statLevel').textContent = data.experience_level;
+
+  // Skills
+  const matchedEl = document.getElementById('matchedSkills');
+  const missingEl = document.getElementById('missingSkills');
+  const gapsEl = document.getElementById('keywordGaps');
+
+  matchedEl.innerHTML = data.matched_skills.length
+    ? data.matched_skills.map(s => `<span class="pill pill-green">${s}</span>`).join('')
+    : '<span style="color:var(--muted);font-size:0.8rem">None detected</span>';
+
+  missingEl.innerHTML = data.missing_skills.length
+    ? data.missing_skills.map(s => `<span class="pill pill-red">${s}</span>`).join('')
+    : '<span style="color:var(--green);font-size:0.8rem">✓ No missing skills!</span>';
+
+  gapsEl.innerHTML = data.keyword_gaps.length
+    ? data.keyword_gaps.map(s => `<span class="pill pill-amber">${s}</span>`).join('')
+    : '<span style="color:var(--muted);font-size:0.8rem">None</span>';
+
+  // Tips
+  document.getElementById('tipsList').innerHTML = data.tips
+    .map(t => `<li>${t}</li>`).join('');
+
+  results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── FIND JOBS ──
+async function runFindJobs() {
+  const file = document.getElementById('findResume').files[0];
+  if (!file) return alert('Please upload your resume PDF');
+
+  const btn = document.getElementById('findBtn');
+  const loader = document.getElementById('findLoader');
+  const results = document.getElementById('findResults');
+
+  btn.disabled = true;
+  loader.style.display = 'block';
+  results.style.display = 'none';
+
+  const form = new FormData();
+  form.append('resume', file);
+  form.append('country', document.getElementById('countrySelect').value);
+  form.append('keywords', document.getElementById('keywords').value);
+
+  try {
+    const res = await fetch(API + '/find-jobs', { method: 'POST', body: form });
+    if (!res.ok) throw new Error((await res.json()).detail || 'Server error');
+    const data = await res.json();
+    renderJobs(data);
+  } catch (e) {
+    alert('Could not find jobs: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    loader.style.display = 'none';
+  }
+}
+
+function renderJobs(data) {
+  const results = document.getElementById('findResults');
+  results.style.display = 'block';
+
+  document.getElementById('resumeSkills').innerHTML = data.resume_skills.length
+    ? data.resume_skills.map(s => `<span class="pill pill-blue">${s}</span>`).join('')
+    : '<span style="color:var(--muted)">No skills detected</span>';
+
+  document.getElementById('jobsCount').textContent = `${data.total_found} jobs ranked by match`;
+
+  // Show Pakistan note
+  const noteEl = document.getElementById('pakistanNote');
+  if (data.pakistan_note) {
+    noteEl.style.display = 'block';
+  } else {
+    noteEl.style.display = 'none';
+  }
+
+  const list = document.getElementById('jobsList');
+  if (!data.jobs.length) {
+    list.innerHTML = '<div class="empty">No jobs found. Try different keywords or country.</div>';
+    return;
+  }
+
+  list.innerHTML = data.jobs.map(job => {
+    const scoreColor = job.match_score >= 70 ? 'var(--green)' : job.match_score >= 50 ? 'var(--amber)' : 'var(--red)';
+    return `
+    <div class="job-card">
+      <div class="job-top">
+        <div>
+          <div class="job-title">${job.title}</div>
+          <div class="job-company">${job.company} · ${job.location}</div>
+        </div>
+        <div class="job-score-wrap">
+          <div class="job-score-num" style="color:${scoreColor}">${job.match_score}%</div>
+          <div class="job-score-label">match</div>
+        </div>
+      </div>
+      <div class="job-bar-track">
+        <div class="job-bar-fill" style="width:${job.match_score}%;background:${scoreColor}"></div>
+      </div>
+      <div class="job-meta">
+        <span>💰 ${job.salary}</span>
+        ${job.matched_skills.length ? `<span>✅ ${job.matched_skills.slice(0,3).join(', ')}</span>` : ''}
+        ${job.missing_skills.length ? `<span style="color:var(--red)">❌ Missing: ${job.missing_skills.slice(0,2).join(', ')}</span>` : ''}
+      </div>
+      <div class="job-desc">${job.description}</div>
+      <div class="job-bottom">
+        <span class="job-verdict-badge" style="background:${job.verdict.color}20;color:${job.verdict.color};border:1px solid ${job.verdict.color}40">
+          ${job.verdict.icon} ${job.verdict.label}
+        </span>
+        <a href="${job.url}" target="_blank" class="job-apply">Apply Now →</a>
+      </div>
+    </div>`;
+  }).join('');
+
+  results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>
+</body>
+</html>
